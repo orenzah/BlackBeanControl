@@ -1,4 +1,4 @@
-#!python2
+#!python3
 
 import broadlink, configparser
 import sys, getopt
@@ -164,7 +164,7 @@ if RealTimeout.strip() == '':
 else:
     RealTimeout = int(RealTimeout.strip())    
 
-RM3Device = broadlink.rm((RealIPAddress, RealPort), RealMACAddress)
+RM3Device = broadlink.rm((RealIPAddress, RealPort), RealMACAddress, RealTimeout)
 RM3Device.auth()
 
 if ReKeyCommand:
@@ -179,7 +179,7 @@ if ReKeyCommand:
             AESEncryption = AES.new(str(RM3Key), AES.MODE_CBC, str(RM3IV))
             EncodedCommand = AESEncryption.encrypt(str(DecodedCommand))
             FinalCommand = EncodedCommand[0x04:]
-            EncodedCommand = FinalCommand.encode('hex')
+            EncodedCommand = FinalCommand.hex()
 
             BlackBeanControlIniFile = open(path.join(Settings.ApplicationDir, 'BlackBeanControl.ini'), 'w')
             SettingsFile.set('Commands', SentCommand, EncodedCommand)
@@ -194,7 +194,7 @@ if ReKeyCommand:
         sys.exit(2)
 
 if RealCommand == 'n':
-    if (len(SentCommand) <> 8) or (not all(c in string.hexdigits for c in SentCommand)):
+    if (len(SentCommand) != 8) or (not all(c in string.hexdigits for c in SentCommand)):
         print('Command must be 4-byte hex number.')
         sys.exit(2)
 
@@ -203,12 +203,12 @@ if RealCommand == 'n':
     # start sequence + NEC start + bits + end pulse with long pause + end sequence
     EncodedCommand = '26002e01' + '00012b96' + "".join(('1440' if c == '1' else '1414') for c in BinStr) + '1400072a' + '000d05'
     
-    RM3Device.send_data(EncodedCommand.decode('hex'))
+    RM3Device.send_data(bytes.fromhex(EncodedCommand))
 
     sys.exit()
 
 if RealCommand == 's':
-    if (len(SentCommand) <> 12) or (not all(c in string.hexdigits for c in SentCommand)):
+    if (len(SentCommand) != 12) or (not all(c in string.hexdigits for c in SentCommand)):
         print('Command must be 6-byte hex number.')
         sys.exit(2)
 
@@ -218,7 +218,7 @@ if RealCommand == 's':
     EncodedBinStr = "".join(('1434' if (c == '1') else '1414') for c in BinStr)
     EncodedCommand = '2600ca00' + '9494' + EncodedBinStr + '1494' + '9494' + EncodedBinStr + '1400072a' + '000d05'
  
-    RM3Device.send_data(EncodedCommand.decode('hex'))
+    RM3Device.send_data(bytes.fromhex(EncodedCommand))
     sys.exit()
 
 
@@ -228,7 +228,7 @@ else:
     CommandFromSettings = ''
 
 if CommandFromSettings.strip() != '':
-    DecodedCommand = CommandFromSettings.decode('hex')
+    DecodedCommand = bytes.fromhex(CommandFromSettings)
     RM3Device.send_data(DecodedCommand)
 else:
     RM3Device.enter_learning()
@@ -239,7 +239,8 @@ else:
         print('Command not received')
         sys.exit()
 
-    EncodedCommand = LearnedCommand.encode('hex')
+    EncodedCommand = LearnedCommand.hex()
+    print(EncodedCommand)
 
     BlackBeanControlIniFile = open(path.join(Settings.ApplicationDir, 'BlackBeanControl.ini'), 'w')    
     SettingsFile.set('Commands', SentCommand, EncodedCommand)
